@@ -1,30 +1,33 @@
-CREATE DATABASE clinicHelperDb;
-use clinicHelperDb;
--- USERS (single table for all roles)
+DROP DATABASE clinicHelperDb2;
+CREATE DATABASE clinicHelperDb2;
+use clinicHelperDb2;
+
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     hashed_password  VARCHAR(255) NOT NULL,
     phone VARCHAR(30),
-    role ENUM('doctor','patient','receptionist','admin') NOT NULL DEFAULT 'patient',
+    role ENUM('DOCTOR', 'PATIENT', 'RECEPTIONIST', 'ADMIN') NOT NULL DEFAULT 'patient',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-insert into users (name, email, hashed_password, phone, role) VALUES('mazen mohamed', 'mazenqwe347@gmail.com', '$2a$10$8LZdUB1IuOshBrpKu9LhgOg23d8CnDgEqDUvEBcB8Ksu6UjmtOPAC', '01008429400', 'admin');
+ALTER TABLE users 
+MODIFY COLUMN role ENUM('DOCTOR', 'PATIENT', 'RECEPTIONIST', 'ADMIN') 
+NOT NULL DEFAULT 'PATIENT';
+UPDATE users SET role = UPPER(role);
 
 
--- DOCTOR PROFILE (one-to-one with users where role='doctor')
 CREATE TABLE doctor_profile (
-  user_id INT PRIMARY KEY,                      -- same id as users.id
+  user_id INT PRIMARY KEY,                    
   specialization VARCHAR(255),
   bio TEXT,
-  image MEDIUMBLOB,                             -- option A: store binary image in DB
+  image MEDIUMBLOB,                            
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 
--- PATIENT PROFILE (optional extra patient info)
+
 CREATE TABLE patient_profile (
   user_id INT PRIMARY KEY,
   dob DATE,
@@ -33,7 +36,7 @@ CREATE TABLE patient_profile (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- CLINIC
+
 CREATE TABLE clinic (
   clinic_id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
@@ -43,49 +46,65 @@ CREATE TABLE clinic (
 
 
 
--- DOCTOR_CLINIC (many-to-many: doctor works on clinic)
 CREATE TABLE doctor_clinic (
   doctor_id INT NOT NULL,
   clinic_id INT NOT NULL,
   PRIMARY KEY (doctor_id, clinic_id),
-  FOREIGN KEY (doctor_id) REFERENCES doctor_profile(user_id) ON DELETE CASCADE,
+  FOREIGN KEY (doctor_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (clinic_id) REFERENCES clinic(clinic_id) ON DELETE CASCADE
 );
 
--- DOCTOR WORKING TIME (a schedule per doctor per clinic / day)
+
 CREATE TABLE doctor_working_time (
   id INT AUTO_INCREMENT PRIMARY KEY,
   doctor_id INT NOT NULL,
   clinic_id INT NOT NULL,
-  day_of_week TINYINT NOT NULL,        -- 0=Sunday .. 6=Saturday (or use ENUM)
+  day_of_week TINYINT NOT NULL,        -- 0: sunday .. 6:Saturday
   start_time TIME NOT NULL,
   end_time TIME NOT NULL,
-  FOREIGN KEY (doctor_id) REFERENCES doctor_profile(user_id) ON DELETE CASCADE,
+  FOREIGN KEY (doctor_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (clinic_id) REFERENCES clinic(clinic_id) ON DELETE CASCADE,
   UNIQUE KEY ux_doctor_clinic_day_time (doctor_id, clinic_id, day_of_week, start_time)
 );
 
+CREATE TABLE receptionist_profile (
+  user_id INT PRIMARY KEY,
+  hire_date DATE,
+  notes TEXT,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 
--- APPOINTMENT
+CREATE TABLE receptionist_clinic (
+  receptionist_id INT NOT NULL,
+  clinic_id INT NOT NULL,
+  assigned_by_doctor INT NOT NULL,
+  assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (receptionist_id, clinic_id),
+  FOREIGN KEY (receptionist_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (clinic_id) REFERENCES clinic(clinic_id) ON DELETE CASCADE,
+  FOREIGN KEY (assigned_by_doctor) REFERENCES users(id) ON DELETE CASCADE
+);
+
+
+
 CREATE TABLE appointment (
   appointment_id INT AUTO_INCREMENT PRIMARY KEY,
   appointment_datetime DATETIME NOT NULL,
-  status ENUM('scheduled','completed','cancelled') NOT NULL DEFAULT 'scheduled',
-  patient_id INT NOT NULL,               -- references users (patient)
-  doctor_id INT NOT NULL,                -- references users (doctor) or doctor_profile.user_id
+  status ENUM('SCHEDULED', 'COMPLETED', 'CANCELLED') NOT NULL DEFAULT 'SCHEDULED',
+  patient_id INT NOT NULL,          
+  doctor_id INT NOT NULL,  
   clinic_id INT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (patient_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (doctor_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (clinic_id) REFERENCES clinic(clinic_id) ON DELETE SET NULL,
-  -- ensure a doctor can't have two appointments at same time
   UNIQUE KEY uq_doctor_datetime (doctor_id, appointment_datetime)
 );
 
--- MEDICAL NOTE
+
 CREATE TABLE medical_note (
   note_id INT AUTO_INCREMENT PRIMARY KEY,
-  appointment_id INT,                      -- note belongs to appointment
+  appointment_id INT, 
   diagnosis_text TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (appointment_id) REFERENCES appointment(appointment_id) ON DELETE CASCADE
@@ -101,22 +120,8 @@ CREATE TABLE medical_note (
 */
 
 
-CREATE PROCEDURE RegisterClinicAndDoctor(
-  IN clinic_name VARCHAR(255),
-  IN clinic_phone VARCHAR(11),
-  IN clinic_address VARCHAR(255),
 
-  IN doctor_name VARCHAR(100),
-  IN doctor_email VARCHAR(255),
-  IN hashed_password VARCHAR(255),
-  IN doctor_phone VARCHAR(30),
-
-  IN specialization VARCHAR(255),
-  IN bio TEXT,
-  IN doctor_name VARCHAR(100),
-);
-
-
+-- for register doctor with his clinic
 DELIMITER $$
 
 DROP PROCEDURE IF EXISTS RegisterClinicAndDoctor$$
@@ -135,10 +140,10 @@ CREATE PROCEDURE RegisterClinicAndDoctor(
   IN in_bio TEXT,
   IN in_image MEDIUMBLOB,
   
-  IN in_start_day TINYINT,   -- e.g., 1 (Monday)
-  IN in_end_day TINYINT,     -- e.g., 5 (Friday)
-  IN in_start_time TIME,     -- e.g., '09:00:00'
-  IN in_end_time TIME        -- e.g., '17:00:00'
+  IN in_start_day TINYINT,   -- e.g., 1 (sun)
+  IN in_end_day TINYINT,     -- e.g., 5 (thursday)
+  IN in_start_time TIME,     -- e.g., '06:00:00' after el fager:)
+  IN in_end_time TIME        -- e.g., '15:00:00' el        3sr:)
 )
 BEGIN
   DECLARE v_clinic_id INT;
@@ -162,7 +167,7 @@ BEGIN
 
   -- 2. Insert User (Doctor)
   INSERT INTO users (name, email, hashed_password, phone, role)
-  VALUES (in_doctor_name, in_doctor_email, in_hashed_password, in_doctor_phone, 'doctor');
+  VALUES (in_doctor_name, in_doctor_email, in_hashed_password, in_doctor_phone, 'DOCTOR');
   
   SET v_user_id = LAST_INSERT_ID();
 
@@ -187,4 +192,109 @@ BEGIN
   COMMIT;
 END$$
 
+DELIMITER ;
+
+
+
+-- delete Doctor and related data : 
+DELIMITER $$
+DROP PROCEDURE IF EXISTS delete_doctor_and_related$$
+CREATE PROCEDURE delete_doctor_and_related(IN in_user_id INT)
+BEGIN
+    DECLARE user_role VARCHAR(20);
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+    START TRANSACTION;
+    SELECT role INTO user_role FROM users WHERE id = in_user_id;
+    IF user_role IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User not found';
+    ELSEIF user_role != 'DOCTOR' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User is not a doctor';
+    END IF;
+    DELETE FROM appointment WHERE doctor_id = in_user_id;
+    DELETE FROM doctor_working_time WHERE doctor_id = in_user_id;
+    DELETE FROM doctor_clinic WHERE doctor_id = in_user_id;
+    DELETE FROM doctor_profile WHERE user_id = in_user_id;
+    DELETE FROM users WHERE id = in_user_id;
+    COMMIT;
+END$$
+DELIMITER ;
+
+-- delete Patient and related data : 
+DELIMITER $$
+DROP PROCEDURE IF EXISTS delete_patient_and_related$$
+CREATE PROCEDURE delete_patient_and_related(IN in_user_id INT)
+BEGIN
+    DECLARE user_role VARCHAR(20);
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+    START TRANSACTION;
+    SELECT role INTO user_role FROM users WHERE id = in_user_id;
+    IF user_role IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User not found';
+    ELSEIF user_role != 'PATIENT' AND user_role != 'patient' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User is not a patient';
+    END IF;
+    DELETE mn FROM medical_note mn
+    INNER JOIN appointment a ON mn.appointment_id = a.appointment_id
+    WHERE a.patient_id = in_user_id;
+    DELETE FROM appointment WHERE patient_id = in_user_id;
+    DELETE FROM patient_profile WHERE user_id = in_user_id;
+    DELETE FROM users WHERE id = in_user_id;
+    COMMIT;
+END$$
+DELIMITER ;
+
+-- delete receptionist and related data : 
+DELIMITER $$
+DROP PROCEDURE IF EXISTS delete_receptionist_and_related$$
+CREATE PROCEDURE delete_receptionist_and_related(IN in_user_id INT)
+BEGIN
+    DECLARE user_role VARCHAR(20);
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+    START TRANSACTION;
+    SELECT role INTO user_role FROM users WHERE id = in_user_id;
+    IF user_role IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User not found';
+    ELSEIF user_role != 'RECEPTIONIST' AND user_role != 'receptionist' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User is not a receptionist';
+    END IF;
+    DELETE FROM receptionist_profile WHERE user_id = in_user_id;
+    DELETE FROM receptionist_clinic WHERE receptionist_id = in_user_id;
+    DELETE FROM users WHERE id = in_user_id;
+    COMMIT;
+END$$
+DELIMITER ;
+
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS check_doctor_clinic_ownership$$
+CREATE PROCEDURE check_doctor_clinic_ownership(
+  IN in_doctor_id INT,
+  IN in_clinic_id INT,
+  OUT is_owner BOOLEAN
+)
+BEGIN
+  DECLARE count_ownership INT;
+  SELECT COUNT(*) INTO count_ownership 
+  FROM doctor_clinic 
+  WHERE doctor_id = in_doctor_id 
+    AND clinic_id = in_clinic_id;
+  IF count_ownership > 0 THEN
+    SET is_owner = TRUE;
+  ELSE
+    SET is_owner = FALSE;
+  END IF;
+END$$
 DELIMITER ;
