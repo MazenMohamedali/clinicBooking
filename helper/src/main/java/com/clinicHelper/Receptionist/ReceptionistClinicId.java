@@ -1,4 +1,4 @@
-package com.clinicHelper.doctor;
+package com.clinicHelper.Receptionist;
 
 import java.io.Serializable;
 
@@ -8,12 +8,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+
 @Embeddable
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DoctorClinicId implements Serializable{
-    private Integer doctorId;
+public class ReceptionistClinicId implements Serializable {
+    private Integer receptionistId;
     private Integer clinicId;
 }

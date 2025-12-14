@@ -1,7 +1,6 @@
 package com.clinicHelper.auth.RegisterRequest;
 
 import java.time.LocalTime;
-import java.util.HashMap;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

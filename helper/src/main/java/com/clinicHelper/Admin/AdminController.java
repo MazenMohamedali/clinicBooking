@@ -17,16 +17,15 @@
 // import org.springframework.web.bind.annotation.RestController;
 
 // import com.clinicHelper.doctor.*;
+
+// import lombok.RequiredArgsConstructor;
 // @RestController
+// @RequiredArgsConstructor
 // @RequestMapping("/admin")
 // public class AdminController {
 
-//     private final Clinic clinicService;
-
 //     @Autowired
-//     public AdminController(Clinic clinicService) {
-//         this.clinicService = clinicService;
-//     }
+//     private final Clinic clinicService;
 
 //     @PreAuthorize("hasRole('ADMIN')")
 //     @GetMapping("/dashboard")

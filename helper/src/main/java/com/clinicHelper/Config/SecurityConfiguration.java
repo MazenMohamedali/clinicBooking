@@ -1,4 +1,5 @@
 package com.clinicHelper.Config;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -25,6 +26,7 @@ public class SecurityConfiguration {
             .authorizeHttpRequests(req -> req
                 .requestMatchers("/api/v1/auth/**")
                 .permitAll()
+                .requestMatchers("/doctor/**").hasRole("DOCTOR")
                 .anyRequest()
                 .authenticated()
             )

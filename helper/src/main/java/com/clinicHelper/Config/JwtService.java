@@ -18,7 +18,6 @@ import io.jsonwebtoken.security.Keys;
 
 @Service
 public class JwtService {
-
     private static final String SECRET_KEY = "b8ECkvzCeVDC811gSJGgDSlYL7SbQZSTHjY8ePPtfwY=";
 
     public String generatedToken(UserDetails userDetails) {
@@ -35,7 +34,7 @@ public class JwtService {
     }
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails UserDetails ) {
-        Long expireTime = 1000L * 60 * 24;
+        Long expireTime = 1000L * 60 * 24 * 24;
         Map<String, Object> claims = extraClaims == null ? new HashMap<>() : extraClaims;
         return Jwts
             .builder()

@@ -16,7 +16,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     @Procedure(name = "delete_patient_and_related")
     void deletePatientAndRelated(Integer in_user_id);
 
-    @Procedure(name = "delete_receptionest_and_related")
+    @Procedure(name = "delete_receptionist_and_related")
     void deleteReceptionestAndRelated(Integer in_user_id);
 
 }

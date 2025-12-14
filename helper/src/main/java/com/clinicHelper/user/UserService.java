@@ -56,6 +56,6 @@ public class UserService {
     }
 
     private void callDeleteRecptionestProc(int userId) {
-        jdbcTemplate.update("CALL delete_receptionest_and_related(?)", userId);
+        jdbcTemplate.update("CALL delete_receptionist_and_related(?)", userId);
     }
 }

@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.clinicHelper.Role;
 import com.clinicHelper.auth.RegisterRequest.BaseReqisterRequest;
 import com.clinicHelper.auth.RegisterRequest.DoctorRegisterRequest;
 import com.clinicHelper.auth.RegisterRequest.patientRegisterRequest;
@@ -30,12 +31,6 @@ public class AuthenticationController {
     @PostMapping("/register/doctor")
     public ResponseEntity<AuthenticationResponse> registerDoctor(@RequestBody DoctorRegisterRequest register) {
         return ResponseEntity.ok(authenticationService.registerDoctor(register));
-    }
-
-
-    @PostMapping("/register/receptionist")
-    public ResponseEntity<AuthenticationResponse> registerReceptionist(@RequestBody BaseReqisterRequest register) {
-        return ResponseEntity.ok(authenticationService.registerUser(register));
     }
     
     @PostMapping("/authenticate")
