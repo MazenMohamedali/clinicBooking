@@ -3,11 +3,15 @@ package com.clinicHelper.Config;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import io.jsonwebtoken.Claims;
@@ -33,13 +37,17 @@ public class JwtService {
         return extractClaim(tooken, Claims::getSubject);
     }
 
-    public String generateToken(Map<String, Object> extraClaims, UserDetails UserDetails ) {
+    public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails ) {
         Long expireTime = 1000L * 60 * 24 * 24;
         Map<String, Object> claims = extraClaims == null ? new HashMap<>() : extraClaims;
+        claims.put("sub", userDetails.getUsername());
+                claims.put("authorities", userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList()));
         return Jwts
             .builder()
             .setClaims(claims)
-            .setSubject(UserDetails.getUsername())
+            .setSubject(userDetails.getUsername())
             .setIssuedAt(new Date(System.currentTimeMillis()))
             .setExpiration(new Date(System.currentTimeMillis() + expireTime))
             .signWith(getSignInKey(), SignatureAlgorithm.HS256)
@@ -71,6 +79,15 @@ public class JwtService {
     private Key getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
         return Keys.hmacShaKeyFor(keyBytes); 
+    }
+
+        public List<String> extractAuthorities(String token) {
+        Claims claims = extractAllClaims(token);
+        Object authorities = claims.get("authorities");
+        if (authorities instanceof List) {
+            return (List<String>) authorities;
+        }
+        return new ArrayList<>();
     }
 
 }

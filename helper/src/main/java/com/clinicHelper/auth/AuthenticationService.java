@@ -27,6 +27,7 @@ import com.clinicHelper.auth.RegisterRequest.patientRegisterRequest;
 import com.clinicHelper.doctor.Clinic;
 import com.clinicHelper.doctor.ClinicRepository;
 import com.clinicHelper.doctor.DoctorClinicRepository;
+import com.clinicHelper.exceptions.DatabaseException;
 import com.clinicHelper.patient.PatientProfile;
 import com.clinicHelper.patient.PatientProfileRepository;
 import com.clinicHelper.user.User;
@@ -110,7 +111,7 @@ public class AuthenticationService {
                     endSql
                 );
         } catch(DataAccessException ex) {
-                throw new RuntimeException("Failed to register doctor in DB: " + ex.getMessage(), ex);
+                throw new DatabaseException("Failed to register doctor in DB: " + ex.getMessage(), ex);
         }
 
             var user = repository.findByEmail(register.getEmail())
