@@ -28,6 +28,7 @@ public class SecurityConfiguration {
                 .permitAll()
                 .requestMatchers("/doctor/**").hasRole("DOCTOR")
                 .requestMatchers("/admin/**").hasRole("ADMIN")
+                .requestMatchers("/patient/**").hasAnyRole("PATIENT", "ADMIN") 
                 .anyRequest()
                 .authenticated()
             )
