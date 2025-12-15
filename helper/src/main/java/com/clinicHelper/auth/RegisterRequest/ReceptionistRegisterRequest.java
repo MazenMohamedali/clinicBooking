@@ -8,7 +8,19 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Data
-public class ReceptionistRegisterRequest extends BaseReqisterRequest {
+public class ReceptionistRegisterRequest{
+    @NotBlank
+    private String name;
+
+    @Email @NotBlank
+    private String email;
+
+    @NotBlank
+    private String password;
+
+    @NotBlank
+    private String phone;
+
     @NotNull(message = "Hire date is required")
     private LocalDate hireDate;
 

@@ -1,6 +1,8 @@
 package com.clinicHelper.auth;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -8,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.clinicHelper.auth.RegisterRequest.BaseReqisterRequest;
 import com.clinicHelper.auth.RegisterRequest.DoctorRegisterRequest;
+import com.clinicHelper.auth.RegisterRequest.ReceptionistRegisterRequest;
 import com.clinicHelper.auth.RegisterRequest.patientRegisterRequest;
 
 import lombok.RequiredArgsConstructor;
@@ -35,5 +38,10 @@ public class AuthenticationController {
     @PostMapping("/authenticate")
     public ResponseEntity<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request) {
         return ResponseEntity.ok(authenticationService.authenticate(request));
+    }
+
+    @PostMapping("/register/receptionist")
+    public ResponseEntity<AuthenticationResponse> registerReceptionist( @RequestBody ReceptionistRegisterRequest request, @AuthenticationPrincipal UserDetails userDetails ) {
+        return ResponseEntity.ok(authenticationService.registerReceptionist(request, userDetails.getUsername()));
     }
 }

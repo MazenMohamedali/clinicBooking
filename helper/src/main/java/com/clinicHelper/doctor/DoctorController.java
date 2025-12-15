@@ -4,6 +4,8 @@ import java.security.Principal;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;                 // correct import
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,12 +14,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.clinicHelper.auth.AuthenticationResponse;
 import com.clinicHelper.auth.AuthenticationService;
 import com.clinicHelper.auth.RegisterRequest.ReceptionistRegisterRequest;
-import com.clinicHelper.user.UserRepository;
 
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
 
 @RestController
 @AllArgsConstructor
@@ -25,15 +24,13 @@ import lombok.RequiredArgsConstructor;
 public class DoctorController {
     private final AuthenticationService receptionistRegistrationService;
     // private final UserRepository userRepository;
-
-    @PreAuthorize("hasRole('DOCTOR')")
     @PostMapping("/register/receptionist")
-    public ResponseEntity<AuthenticationResponse> registerReceptionist(
-            @Valid @RequestBody ReceptionistRegisterRequest request,
-            Principal principal
-    ) {
+    @PreAuthorize("hasRole('DOCTOR')")
+    public ResponseEntity<AuthenticationResponse> registerReceptionist( @Valid @RequestBody ReceptionistRegisterRequest request, Principal principal) {
         AuthenticationResponse response = receptionistRegistrationService
-                .registerReceptionist(request, principal.getName());
+        .registerReceptionist(request, principal.getName());
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        System.out.println("DEBUG AUTH: principal=" + auth.getPrincipal() + " authorities=" + auth.getAuthorities());
         return ResponseEntity.ok(response);
     }
 

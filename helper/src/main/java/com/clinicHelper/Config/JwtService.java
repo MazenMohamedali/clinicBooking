@@ -3,16 +3,14 @@ package com.clinicHelper.Config;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+
+import com.clinicHelper.user.User; // your domain user
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -28,35 +26,67 @@ public class JwtService {
         return generateToken(new HashMap<>(), userDetails);
     }
 
-    public <T> T extractClaim(String token, Function<Claims, T> claimResolver) {
-        final Claims claims = extractAllClaims(token);
-        return claimResolver.apply(claims);
-    }
+    public String generateToken(Map<String, Object> extraClaims, User user) {
+        long expireTime = 1000L * 60 * 60 * 24; // 1 day (adjust as needed)
+        Map<String, Object> claims = extraClaims == null ? new HashMap<>() : new HashMap<>(extraClaims);
 
-    public String extractUsername(String tooken) {
-        return extractClaim(tooken, Claims::getSubject);
+        if (user != null && user.getRole() != null) {
+            claims.put("role", user.getRole().name());
+        }
+
+        String subject = user != null ? user.getEmail() : null;
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(subject)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + expireTime))
+                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
+                .compact();
     }
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails ) {
-        Long expireTime = 1000L * 60 * 24 * 24;
-        Map<String, Object> claims = extraClaims == null ? new HashMap<>() : extraClaims;
-        claims.put("sub", userDetails.getUsername());
-                claims.put("authorities", userDetails.getAuthorities().stream()
+        long expireTime = 1000L * 60 * 60 * 24; // 1 day
+        Map<String, Object> claims = extraClaims == null ? new HashMap<>() : new HashMap<>(extraClaims);
+
+        String roleName = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(a -> a != null && a.startsWith("ROLE_"))
+                .map(a -> a.substring("ROLE_".length()))
+                .findFirst()
+                .orElse(null);
+
+        if (roleName != null) claims.put("role", roleName);
+
+        // include authorities as list of strings
+        claims.put("authorities", userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList()));
+
+        String subject = userDetails.getUsername();
+
         return Jwts
             .builder()
             .setClaims(claims)
-            .setSubject(userDetails.getUsername())
+            .setSubject(subject)
             .setIssuedAt(new Date(System.currentTimeMillis()))
             .setExpiration(new Date(System.currentTimeMillis() + expireTime))
             .signWith(getSignInKey(), SignatureAlgorithm.HS256)
             .compact();
     }
 
+    public <T> T extractClaim(String token, Function<Claims, T> claimResolver) {
+        final Claims claims = extractAllClaims(token);
+        return claimResolver.apply(claims);
+    }
+
+    public String extractUsername(String token) {
+        return extractClaim(token, Claims::getSubject);
+    }
+
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        return (username != null && username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 
     private boolean isTokenExpired(String token) {
@@ -64,10 +94,10 @@ public class JwtService {
     }
 
     private Date extractExpiration(String token) {
-        return (Date) extractClaim(token, Claims::getExpiration);
+        return extractClaim(token, Claims::getExpiration);
     }
 
-    private Claims extractAllClaims(String token) {
+    public Claims extractAllClaims(String token) {
         return Jwts
                 .parserBuilder()
                 .setSigningKey(getSignInKey())
@@ -78,10 +108,11 @@ public class JwtService {
 
     private Key getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
-        return Keys.hmacShaKeyFor(keyBytes); 
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
-        public List<String> extractAuthorities(String token) {
+    @SuppressWarnings("unchecked")
+    public List<String> extractAuthorities(String token) {
         Claims claims = extractAllClaims(token);
         Object authorities = claims.get("authorities");
         if (authorities instanceof List) {
@@ -90,4 +121,9 @@ public class JwtService {
         return new ArrayList<>();
     }
 
+    public String extractRole(String token) {
+        Claims claims = extractAllClaims(token);
+        Object role = claims.get("role");
+        return role != null ? role.toString() : null;
+    }
 }

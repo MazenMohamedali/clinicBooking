@@ -1,9 +1,9 @@
 package com.clinicHelper.Config;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -25,61 +25,76 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
 @Component
-@RequiredArgsConstructor // if you have private final fields, it will create constructor for them
-// public class JwtAuthenticationFilter implement Filter(interface) -> can do that
+@RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,HttpServletResponse response, FilterChain filterChain)
-        throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+        throws ServletException, IOException, ValidationException {
 
-            final String authHeader = request.getHeader("Authorization");
-            final String jwt;
-            final String userEmail;
+        final String authHeader = request.getHeader("Authorization");
 
+        try {
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            String jwt = authHeader.substring("Bearer ".length());
+            String userEmail = jwtService.extractUsername(jwt);
+            if (userEmail == null) throw new ValidationException("JWT token is invalid or missing username");
+
+            UserDetails userDetails;
             try {
-                if(authHeader == null || !authHeader.startsWith("Bearer ")) {
-                    filterChain.doFilter(request, response);
-                    return;
-                }
-                jwt = authHeader.substring("Bearer ".length());
-                userEmail = jwtService.extractUsername(jwt);
-                if (userEmail == null) throw new ValidationException("JWT token is invalid or missing username");
-                UserDetails userDetails;
-                try {
-                    userDetails = this.userDetailsService.loadUserByUsername(userEmail);
-                } catch (UsernameNotFoundException ex) {
-                    throw new NotFoundException();
-                }
+                userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+            } catch (UsernameNotFoundException ex) {
+                throw new ValidationException("User not found for token");
+            }
 
-                if (!jwtService.isTokenValid(jwt, userDetails)) {
-                    throw new ValidationException("JWT token is invalid or expired");
-                }
+            if (!jwtService.isTokenValid(jwt, userDetails)) {
+                throw new ValidationException("JWT token is invalid or expired");
+            }
 
-                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+            List<String> authorityStrings = jwtService.extractAuthorities(jwt);
+            List<GrantedAuthority> authorities;
+
+            if (authorityStrings != null && !authorityStrings.isEmpty()) {
+                authorities = authorityStrings.stream()
+                        .map(SimpleGrantedAuthority::new)
+                        .collect(Collectors.toList());
+            } else {
+                String roleFromToken = jwtService.extractRole(jwt);
+                if (roleFromToken != null && !roleFromToken.isBlank()) {
+                    authorities = List.of(new SimpleGrantedAuthority("ROLE_" + roleFromToken));
+                } else {
+                    authorities = userDetails.getAuthorities().stream()
+                            .map(g -> new SimpleGrantedAuthority(g.getAuthority()))
+                            .collect(Collectors.toList());
+                }
+            }
+
+            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                     userDetails,
                     null,
-                    userDetails.getAuthorities());
-                authToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                    authorities);
+            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authToken);
 
-                filterChain.doFilter(request, response);
-            } catch (ApiException ex) {
-                response.setStatus(ex.getStatus().value());
-                response.setContentType("application/json");
-                response.getWriter().write(
+            filterChain.doFilter(request, response);
+
+        } catch (ApiException ex) {
+            response.setStatus(ex.getStatus().value());
+            response.setContentType("application/json");
+            response.getWriter().write(
                 "{\"code\":\"" + ex.getErrorCode() + "\", \"message\":\"" + ex.getMessage() + "\"}");
-            }
-            catch (Exception ex) {
-                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                response.setContentType("application/json");
-                response.getWriter().write(
-                    "{\"code\":\"INTERNAL_ERROR\", \"message\":\"Unexpected error occurred\"}");
-            }
+        } catch (Exception ex) {
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            response.setContentType("application/json");
+            response.getWriter().write(
+                "{\"code\":\"INTERNAL_ERROR\", \"message\":\"Unexpected error occurred\"}");
+        }
     }
 }
-
