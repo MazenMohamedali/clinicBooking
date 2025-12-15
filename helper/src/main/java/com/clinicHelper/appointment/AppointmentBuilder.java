@@ -19,6 +19,6 @@ public class AppointmentBuilder {
     public AppointmentBuilder status(AppointmentStatus status) { this.status = status; return this; }
 
     public Appointment build() {
-        return new Appointment(id, patient, doctor, appointmentTime, status);
+        return new Appointment(id, patient, doctor, appointmentTime, status, appointmentTime, null);
     }
 }

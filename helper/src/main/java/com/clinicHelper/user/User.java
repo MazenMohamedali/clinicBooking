@@ -21,6 +21,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 
 @Data
 @Builder
@@ -52,6 +53,11 @@ public class User implements UserDetails {
     
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        if (createdAt == null) createdAt = LocalDateTime.now();
+    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

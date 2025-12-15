@@ -28,9 +28,13 @@ public class PatientProfile {
     @MapsId
     @JoinColumn(name = "user_id")
     private User user;
+
+    @Column(name = "insurance_number")
     private String insuranceNumber;
+
     @Column(columnDefinition = "TEXT")
     private String notes;
+    
     @Column(name="dob")
     private LocalDate birthDate;
 }

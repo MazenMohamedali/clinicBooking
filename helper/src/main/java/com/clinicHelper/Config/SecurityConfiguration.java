@@ -27,6 +27,7 @@ public class SecurityConfiguration {
                 .requestMatchers("/api/v1/auth/**")
                 .permitAll()
                 .requestMatchers("/doctor/**").hasRole("DOCTOR")
+                .requestMatchers("/admin/**").hasRole("ADMIN")
                 .anyRequest()
                 .authenticated()
             )
