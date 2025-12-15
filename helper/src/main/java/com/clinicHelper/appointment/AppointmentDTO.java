@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AppointmentDTO {
-    private Long appointmentId;  // Changed from id to appointmentId
+    private Long appointmentId;
     private LocalDateTime appointmentTime;
     private AppointmentStatus status;
     private Integer patientId;

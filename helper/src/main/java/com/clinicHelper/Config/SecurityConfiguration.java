@@ -29,14 +29,20 @@ public class SecurityConfiguration {
                 .requestMatchers("/doctor/**").hasRole("DOCTOR")
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/patient/**").hasAnyRole("PATIENT", "ADMIN") 
-                .anyRequest()
+                .requestMatchers("/appointments/book").hasRole("PATIENT")
+                .requestMatchers("/appointments/patient/**").hasRole("PATIENT")
+                .requestMatchers("/appointments/doctor/**").hasRole("DOCTOR")
+                .requestMatchers("/appointments/receptionist/**").hasRole("RECEPTIONIST")
+                .requestMatchers("/appointments/today").hasAnyRole("DOCTOR", "RECEPTIONIST")
+                .requestMatchers("/appointments/**")
                 .authenticated()
-            )
-            .sessionManagement(session -> session 
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-            .authenticationProvider(authenticationProvider)
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .anyRequest()
+                .authenticated())
+                .sessionManagement(session -> session 
+                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .authenticationProvider(authenticationProvider)
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }

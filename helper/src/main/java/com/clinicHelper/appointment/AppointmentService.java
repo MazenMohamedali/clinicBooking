@@ -3,11 +3,14 @@ package com.clinicHelper.appointment;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+
 import com.clinicHelper.doctor.DoctorProfile;
 import com.clinicHelper.doctor.DoctorProfileRepository;
 import com.clinicHelper.patient.PatientProfile;
 import com.clinicHelper.patient.PatientProfileRepository;
 
+@Service
 public class AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final PatientProfileRepository patientProfileRepository;
@@ -57,5 +60,17 @@ public class AppointmentService {
 
         appointment.setStatus(AppointmentStatus.CANCELLED);
         return appointmentRepository.save(appointment);
+    }
+
+    public Appointment updateAppointmentStatus(Long appointmentId, AppointmentStatus status) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new RuntimeException("Appointment not found"));
+        
+        appointment.setStatus(status);
+        return appointmentRepository.save(appointment);
+    }
+    
+    public List<Appointment> getAppointmentsByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
+        return appointmentRepository.findByAppointmentTimeBetween(startDate, endDate);
     }
 }
