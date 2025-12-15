@@ -17,15 +17,9 @@ public class HelperApplication {
 
 
 /*
-POST /doctor/register/receptionist
-Authorization: Bearer <doctor-token>
-{
-  "name": "Sarah",
-  "email": "sarah@clinic.com",
-  "password": "receptionist123",
-  "phone": "01098765432",
-  "hireDate": "2024-01-15",
-  "notes": "Full-time receptionist",
-  "clinicIds": [1]
-}
+  docker compose down
+  docker compose up --build -d
+
+  docker compose start app
+  docker compose stop app
 */
